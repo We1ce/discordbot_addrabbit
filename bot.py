@@ -38,11 +38,11 @@ async def on_ready():
 async def random_choice(ctx, *options: str):
     # 檢查使用者有沒有輸入選項
     if len(options) == 0:
-        await ctx.send("請至少提供兩個選項，例如：`!隨機 抽 不抽`")
+        await ctx.send("至少提供兩個選項，例如：`!隨機 抽 不抽`")
         return
     
     if len(options) == 1:
-        await ctx.send(f"只有一個選項：**{options[0]}**，我看你是想被我抽？")
+        await ctx.send(f"只有一個選項，我看你是想被我抽？")
         return
 
     # 從選項中隨機挑選一個
