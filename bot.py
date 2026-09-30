@@ -81,6 +81,9 @@ async def on_message(message):
         # 把 "隨機 " 後面的文字切開成選項清單
         options_str = content[3:].strip()
         options = [opt.strip() for opt in options_str.split() if opt.strip()]
+    elif content.startswith("随机 "):
+        options_str = content[3:].strip()
+        options = [opt.strip() for opt in options_str.split() if opt.strip()]
         
         if len(options) > 0:
             chosen = random.choice(options)
@@ -89,7 +92,7 @@ async def on_message(message):
 
     # 功能 B：運勢查詢 (例如輸入: "小明運勢" 或 "今天晚餐的運勢")
     target_name = None
-    if content.endswith("的運勢"):
+    if content.endswith("运势"):
         target_name = content[:-3]
     elif content.endswith("運勢"):
         target_name = content[:-2]
