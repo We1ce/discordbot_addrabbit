@@ -4,7 +4,7 @@ from flask import Flask
 import discord
 from discord.ext import commands
 
-# 1. 建立輕量的網頁伺服器 (跑 UptimeRobot 呼叫)
+# 1. 保持 Render 免費版不休眠的假網頁伺服器
 app = Flask('')
 
 @app.route('/')
@@ -12,7 +12,6 @@ def home():
     return "I am alive!"
 
 def run_web():
-    # Render 會自動分配 PORT 給網頁服務，我們抓取環境變數的 PORT 或是預設 8080
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
@@ -20,11 +19,12 @@ def keep_alive():
     t = Thread(target=run_web)
     t.start()
 
-# 2. Discord Bot 原本的程式碼
+# 2. Discord Bot 設定
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 intents.members = True
+intents.voice_states = True  # 【重要】必須開啟語音狀態 Intent
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -32,6 +32,33 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'目前登入身份：{bot.user}')
 
+# === 語音功能指令 ===
+
+# 指令 1: !join (加入語音)
+@bot.command(name="join")
+async def join(ctx):
+    # 檢查使用者是否在語音頻道中
+    if ctx.author.voice and ctx.author.voice.channel:
+        channel = ctx.author.voice.channel
+        # 如果機器人已經在語音中，先移動過去；如果沒有，就連線
+        if ctx.voice_client is not None:
+            await ctx.voice_client.move_to(channel)
+        else:
+            await channel.connect()
+        await ctx.send(f'已成功加入語音頻道：{channel.name}')
+    else:
+        await ctx.send('請先進入一個語音頻道，我才能進去陪你！')
+
+# 指令 2: !leave (離開語音)
+@bot.command(name="leave")
+async def leave(ctx):
+    if ctx.voice_client:
+        await ctx.voice_client.disconnect()
+        await ctx.send('已離開語音頻道。')
+    else:
+        await ctx.send('我目前不在任何語音頻道中。')
+
+# === 原本的表情符號轉發功能 ===
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.member is None or payload.member.bot or payload.guild_id is None:
@@ -66,7 +93,6 @@ async def on_raw_reaction_add(payload):
         avatar_url=avatar_url
     )
 
-# 3. 同時啟動網頁伺服器與 Discord Bot
 if __name__ == "__main__":
     keep_alive()
     TOKEN = os.getenv("DISCORD_TOKEN")
