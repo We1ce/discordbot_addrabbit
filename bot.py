@@ -37,17 +37,20 @@ async def on_ready():
 # 指令 1: !join (加入語音)
 @bot.command(name="join")
 async def join(ctx):
-    # 檢查使用者是否在語音頻道中
-    if ctx.author.voice and ctx.author.voice.channel:
-        channel = ctx.author.voice.channel
-        # 如果機器人已經在語音中，先移動過去；如果沒有，就連線
-        if ctx.voice_client is not None:
-            await ctx.voice_client.move_to(channel)
+    try:
+        # 檢查使用者是否在語音頻道中
+        if ctx.author.voice and ctx.author.voice.channel:
+            channel = ctx.author.voice.channel
+            if ctx.voice_client is not None:
+                await ctx.voice_client.move_to(channel)
+            else:
+                await channel.connect()
+            await ctx.send(f'已成功加入語音頻道：{channel.name}')
         else:
-            await channel.connect()
-        await ctx.send(f'已成功加入語音頻道：{channel.name}')
-    else:
-        await ctx.send('請先進入一個語音頻道，我才能進去陪你！')
+            await ctx.send('請先進入一個語音頻道，我才能進去陪你！')
+    except Exception as e:
+        # 如果發生錯誤，把詳細錯誤訊息直接印在 Discord 頻道裡
+        await ctx.send(f'發生錯誤了：```{e}```')
 
 # 指令 2: !leave (離開語音)
 @bot.command(name="leave")
