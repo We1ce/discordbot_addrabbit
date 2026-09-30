@@ -4,7 +4,7 @@ from flask import Flask
 import discord
 from discord.ext import commands
 
-# 1. 保持 Render 免費版不休眠的假網頁伺服器
+# 1. 網頁伺服器
 app = Flask('')
 
 @app.route('/')
