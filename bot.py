@@ -1,4 +1,5 @@
 import os
+import random
 from threading import Thread
 from flask import Flask
 import discord
@@ -24,7 +25,6 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 intents.members = True
-intents.voice_states = True  # 【重要】必須開啟語音狀態 Intent
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -32,36 +32,27 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'目前登入身份：{bot.user}')
 
-# === 語音功能指令 ===
+# === 新增功能：隨機選擇指令 ===
+# 使用方式範例: !隨機 珍奶 咖啡 水
+@bot.command(name="隨機")
+async def random_choice(ctx, *options: str):
+    # 檢查使用者有沒有輸入選項
+    if len(options) == 0:
+        await ctx.send("請至少提供兩個選項，例如：`!隨機 抽 不抽`")
+        return
+    
+    if len(options) == 1:
+        await ctx.send(f"只有一個選項：**{options[0]}**，我看你是想被我抽？")
+        return
 
-# 指令 1: !join (加入語音)
-@bot.command(name="join")
-async def join(ctx):
-    try:
-        # 檢查使用者是否在語音頻道中
-        if ctx.author.voice and ctx.author.voice.channel:
-            channel = ctx.author.voice.channel
-            if ctx.voice_client is not None:
-                await ctx.voice_client.move_to(channel)
-            else:
-                await channel.connect()
-            await ctx.send(f'已成功加入語音頻道：{channel.name}')
-        else:
-            await ctx.send('請先進入一個語音頻道，我才能進去陪你！')
-    except Exception as e:
-        # 如果發生錯誤，把詳細錯誤訊息直接印在 Discord 頻道裡
-        await ctx.send(f'發生錯誤了：```{e}```')
+    # 從選項中隨機挑選一個
+    chosen = random.choice(options)
+    
+    # 組合成好看的回覆訊息
+    options_text = ", ".join(options)
+    await ctx.send(f"**{chosen}**")
 
-# 指令 2: !leave (離開語音)
-@bot.command(name="leave")
-async def leave(ctx):
-    if ctx.voice_client:
-        await ctx.voice_client.disconnect()
-        await ctx.send('已離開語音頻道。')
-    else:
-        await ctx.send('我目前不在任何語音頻道中。')
-
-# === 原本的表情符號轉發功能 ===
+# === 核心功能：按 ➕ 表情符號轉發訊息 ===
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.member is None or payload.member.bot or payload.guild_id is None:
