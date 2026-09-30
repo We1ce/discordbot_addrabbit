@@ -32,7 +32,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'目前登入身份：{bot.user}')
 
-# === 功能 1：串子回覆 ===
+# === 功能 1：表情符號轉發訊息 ===
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.member is None or payload.member.bot or payload.guild_id is None:
@@ -67,7 +67,7 @@ async def on_raw_reaction_add(payload):
         avatar_url=avatar_url
     )
 
-# === 功能 2 & 3： ===
+# === 功能 2 & 3：訊息監聽（支援繁體與簡體） ===
 @bot.event
 async def on_message(message):
     # 忽略機器人自己說的話，避免無限迴圈
@@ -76,12 +76,11 @@ async def on_message(message):
 
     content = message.content.strip()
 
-    # 功能 A：隨機抽籤 (例如輸入: "隨機 抽 不抽")
-    if content.startswith("隨機 "):
-        # 把 "隨機 " 後面的文字切開成選項清單
-        options_str = content[3:].strip()
-        options = [opt.strip() for opt in options_str.split() if opt.strip()]
-    elif content.startswith("随机 "):
+    # ----------------------------------------------------
+    # 功能 A：隨機抽籤 (支援繁中、簡中)
+    # ----------------------------------------------------
+    if content.startswith("隨機 ") or content.startswith("随机 "):
+        # 取得空格後面的選項內容
         options_str = content[3:].strip()
         options = [opt.strip() for opt in options_str.split() if opt.strip()]
         
@@ -90,18 +89,25 @@ async def on_message(message):
             await message.channel.send(f"**{chosen}**")
         return  # 處理完隨機就直接結束，不往下跑運勢
 
-    # 功能 B：運勢查詢 (例如輸入: "小明運勢" 或 "今天晚餐的運勢")
+    # ----------------------------------------------------
+    # 功能 B：運勢查詢 (支援繁中、簡中)
+    # ----------------------------------------------------
     target_name = None
-    if content.endswith("运势"):
+    
+    if content.endswith("的運勢"):
         target_name = content[:-3]
     elif content.endswith("運勢"):
         target_name = content[:-2]
+    elif content.endswith("的运势"):
+        target_name = content[:-4]
+    elif content.endswith("运势"):
+        target_name = content[:-3]
 
     if target_name:
         fortunes = ["大吉", "中吉", "小吉", "吉", "末吉", "凶", "大凶"]
         result = random.choice(fortunes)
         
-        # 依照你的要求格式回覆：@使用者 訊息內容：運勢結果
+        # 回覆格式：@使用者 訊息內容：運勢結果
         await message.channel.send(f"{message.author.mention} {content}：**{result}**")
         return
 
