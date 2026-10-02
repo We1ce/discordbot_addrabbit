@@ -32,7 +32,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f'目前登入身份：{bot.user}')
 
-# === 功能 1：表情符號轉發訊息 ===
+# === 功能 1：表情符號轉發訊息（支援一般頻道與論壇貼文） ===
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.member is None or payload.member.bot or payload.guild_id is None:
@@ -42,30 +42,50 @@ async def on_raw_reaction_add(payload):
     if payload.emoji.name != TARGET_EMOJI:
         return
 
+    # 1. 取得頻道物件
     channel = bot.get_channel(payload.channel_id)
     if not channel:
         return
 
     try:
+        # 2. 抓取被按反應的原始訊息（支援論壇貼文/討論串）
         target_message = await channel.fetch_message(payload.message_id)
     except discord.NotFound:
         return
 
+    # 3. 取得點反應的使用者資訊 (伺服器暱稱與頭貼)
     member = payload.member
     display_name = member.nick if member.nick else member.name
     avatar_url = member.avatar.url if member.avatar else member.default_avatar.url
 
-    webhooks = await channel.webhooks()
+    # 4. 判斷如果是在論壇貼文或討論串 (Thread)，Webhook 必須建立在「父頻道 (Parent Channel)」上
+    target_channel = channel
+    if isinstance(channel, discord.Thread):
+        target_channel = channel.parent  # 論壇頻道本身
+
+    # 5. 在正確的頻道尋找現有的 Webhook，若沒有則自動建立
+    webhooks = await target_channel.webhooks()
     webhook = discord.utils.get(webhooks, name="AvatarEchoWebhook")
     
     if webhook is None:
-        webhook = await channel.create_webhook(name="AvatarEchoWebhook")
+        webhook = await target_channel.create_webhook(name="AvatarEchoWebhook")
 
-    await webhook.send(
-        content=target_message.content,
-        username=display_name,
-        avatar_url=avatar_url
-    )
+    # 6. 發送訊息
+    # 如果是在論壇貼文裡按的，我們利用 thread=channel 讓 webhook 把訊息發在該貼文串內
+    if isinstance(channel, discord.Thread):
+        await webhook.send(
+            content=target_message.content,
+            username=display_name,
+            avatar_url=avatar_url,
+            thread=channel
+        )
+    else:
+        # 一般文字頻道
+        await webhook.send(
+            content=target_message.content,
+            username=display_name,
+            avatar_url=avatar_url
+        )
 
 # === 功能 2 & 3：訊息監聽（支援繁體與簡體） ===
 @bot.event
